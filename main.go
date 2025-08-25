@@ -10,15 +10,25 @@ func main() {
 	const filePathRoot = "."
 
 	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir(filePathRoot)))
+	mux.Handle("/app/", http.StripPrefix("/app/", http.FileServer(http.Dir(filePathRoot))))
+	mux.Handle("/healthz", handlerReadiness())
+
 	srv := &http.Server{
 		Addr:    ":" + port,
 		Handler: mux,
 	}
 
-	log.Printf("Serving on port: %s\n", port)
+	log.Printf("Serving files from %s on port: %s\n", filePathRoot, port)
 	err := srv.ListenAndServe()
 	if err != nil {
 		log.Println(err)
 	}
+}
+
+func handlerReadiness() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-type", "text/plain; charset=utf-8")
+		w.WriteHeader(200)
+		w.Write([]byte("OK"))
+	})
 }
