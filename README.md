@@ -7,4 +7,5 @@ course [Learn HTTP Servers in Go](https://www.boot.dev/courses/learn-http-server
 
 ## Functionality
 
-So far we start a server on port _8080_ and our only response is 404 Not Found
+So far we start a server on port _8080_
+now we serve the files in the folder we run the server
