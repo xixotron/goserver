@@ -5,17 +5,18 @@ import (
 	"net/http"
 )
 
-const serverPort = "8080"
-
 func main() {
+	const port = "8080"
 
-	serverMux := http.NewServeMux()
+	mux := http.NewServeMux()
 
-	httpServer := http.Server{
-		Addr:    ":" + serverPort,
-		Handler: serverMux,
+	srv := http.Server{
+		Addr:    ":" + port,
+		Handler: mux,
 	}
-	err := httpServer.ListenAndServe()
+
+	log.Printf("Serving on port: %s\n", port)
+	err := srv.ListenAndServe()
 	if err != nil {
 		log.Println(err)
 	}
