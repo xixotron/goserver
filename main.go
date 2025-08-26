@@ -23,7 +23,10 @@ func main() {
 	mux.Handle("/app/", http.StripPrefix("/app/", appCfg.middlewareMetricsInc(http.FileServer(http.Dir(filePathRoot)))))
 	mux.Handle("/healthz", handlerReadiness())
 	mux.Handle("/metrics", appCfg.handlerStatistics())
-	mux.Handle("/reset", appCfg.handlerReset())
+	mux.HandleFunc("/reset", appCfg.handlerReset)
+	// Both Handle and Handle Func take a pattern string and then regisger a handler to serve queryes on that pattern
+	// Handle takes a http.handler wich implements ServeHTTP(w http.ResponseWriter, r *http.Request) as the handler
+	// HandleFunc takes a funcion with signature func(w http.ResponseWriter, r *http.Request) and Registers it as a Handler
 
 	srv := &http.Server{
 		Addr:    ":" + port,
@@ -60,12 +63,10 @@ func (cfg *apiConfig) handlerStatistics() http.Handler {
 	})
 }
 
-func (cfg *apiConfig) handlerReset() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg.fileServerHits.Store(0)
+func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
+	cfg.fileServerHits.Store(0)
 
-		w.Header().Add("Content-type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "Hits: %v", cfg.fileServerHits.Load())
-	})
+	w.Header().Add("Content-type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Hits: %v", cfg.fileServerHits.Load())
 }
