@@ -19,9 +19,9 @@ func main() {
 	fsHandler := appCfg.middlewareMetricsInc(http.FileServer(http.Dir(filePathRoot)))
 	mux.Handle("/app/", http.StripPrefix("/app/", fsHandler))
 
-	mux.HandleFunc("GET /healthz", handlerReadiness)
-	mux.Handle("GET /metrics", appCfg.handlerMetrics())
-	mux.HandleFunc("POST /reset", appCfg.handlerMetricsReset)
+	mux.HandleFunc("GET /api/healthz", handlerReadiness)
+	mux.Handle("GET /api/metrics", appCfg.handlerMetrics())
+	mux.HandleFunc("POST /api/reset", appCfg.handlerMetricsReset)
 	// Both Handle and Handle Func take a pattern string and then regisger a handler to serve queryes on that pattern
 	// Handle takes a http.handler wich implements ServeHTTP(w http.ResponseWriter, r *http.Request) as the handler
 	// HandleFunc takes a funcion with signature func(w http.ResponseWriter, r *http.Request) and Registers it as a Handler
