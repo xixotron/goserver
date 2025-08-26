@@ -20,8 +20,8 @@ func main() {
 	mux.Handle("/app/", http.StripPrefix("/app/", fsHandler))
 
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
-	mux.Handle("GET /api/metrics", appCfg.handlerMetrics())
-	mux.HandleFunc("POST /api/reset", appCfg.handlerMetricsReset)
+	mux.Handle("GET /admin/metrics", appCfg.handlerMetrics())
+	mux.HandleFunc("POST /admin/reset", appCfg.handlerMetricsReset)
 	// Both Handle and Handle Func take a pattern string and then regisger a handler to serve queryes on that pattern
 	// Handle takes a http.handler wich implements ServeHTTP(w http.ResponseWriter, r *http.Request) as the handler
 	// HandleFunc takes a funcion with signature func(w http.ResponseWriter, r *http.Request) and Registers it as a Handler

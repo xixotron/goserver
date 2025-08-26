@@ -18,10 +18,17 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 }
 
 func (cfg *apiConfig) handlerMetrics() http.Handler {
+	const handlerMetricsTemplate = `<html>
+  <body>
+    <h1>Welcome, Chirpy Admin</h1>
+    <p>Chirpy has been visited %d times!</p>
+  </body>
+</html>
+`
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-type", "text/plain; charset=utf-8")
+		w.Header().Add("Content-type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "Hits: %v", cfg.fileServerHits.Load())
+		fmt.Fprintf(w, handlerMetricsTemplate, cfg.fileServerHits.Load())
 	})
 }
 
