@@ -1,15 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"sync/atomic"
 )
-
-type apiConfig struct {
-	fileServerHits atomic.Int32
-}
 
 func main() {
 	const port = "8080"
@@ -20,10 +15,13 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.Handle("/app/", http.StripPrefix("/app/", appCfg.middlewareMetricsInc(http.FileServer(http.Dir(filePathRoot)))))
-	mux.Handle("/healthz", handlerReadiness())
-	mux.Handle("/metrics", appCfg.handlerStatistics())
-	mux.HandleFunc("/reset", appCfg.handlerReset)
+
+	fsHandler := appCfg.middlewareMetricsInc(http.FileServer(http.Dir(filePathRoot)))
+	mux.Handle("/app/", http.StripPrefix("/app/", fsHandler))
+
+	mux.HandleFunc("GET /healthz", handlerReadiness)
+	mux.Handle("GET /metrics", appCfg.handlerMetrics())
+	mux.HandleFunc("POST /reset", appCfg.handlerMetricsReset)
 	// Both Handle and Handle Func take a pattern string and then regisger a handler to serve queryes on that pattern
 	// Handle takes a http.handler wich implements ServeHTTP(w http.ResponseWriter, r *http.Request) as the handler
 	// HandleFunc takes a funcion with signature func(w http.ResponseWriter, r *http.Request) and Registers it as a Handler
@@ -38,35 +36,4 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
-}
-
-func handlerReadiness() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(http.StatusText(http.StatusOK)))
-	})
-}
-
-func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg.fileServerHits.Add(1)
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (cfg *apiConfig) handlerStatistics() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "Hits: %v", cfg.fileServerHits.Load())
-	})
-}
-
-func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
-	cfg.fileServerHits.Store(0)
-
-	w.Header().Add("Content-type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Hits: %v", cfg.fileServerHits.Load())
 }
