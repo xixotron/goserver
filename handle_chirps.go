@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 func handleChirpsValidate(w http.ResponseWriter, r *http.Request) {
@@ -13,7 +14,8 @@ func handleChirpsValidate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type returnVals struct {
-		Valid bool `json:"valid"`
+		Valid       bool   `json:"valid"`
+		CleanedBody string `json:"cleaned_body"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -34,5 +36,25 @@ func handleChirpsValidate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, returnVals{Valid: true})
+	respondWithJSON(w, http.StatusOK, returnVals{
+		Valid:       true,
+		CleanedBody: replaceNotyWords(*params.Body),
+	})
+}
+
+func replaceNotyWords(chirp string) string {
+	notyWords := map[string]struct{}{
+		"kerfuffle": {},
+		"sharbert":  {},
+		"fornax":    {},
+	}
+
+	res := chirp
+	for word := range strings.SplitSeq(res, " ") {
+		_, match := notyWords[strings.ToLower(word)]
+		if match {
+			res = strings.ReplaceAll(res, word, "****")
+		}
+	}
+	return res
 }
