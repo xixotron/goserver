@@ -1,17 +1,41 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
+	"os"
 	"sync/atomic"
+
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
+	"github.com/xixotron/goserver/internal/database"
 )
 
+type apiConfig struct {
+	fileServerHits atomic.Int32
+	db             *database.Queries
+}
+
 func main() {
-	const port = "8080"
 	const filePathRoot = "."
+	const port = "8080"
+
+	godotenv.Load()
+	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		log.Fatal("DB_URL must be set")
+	}
+
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatalf("Error connecting to DB: %v", err)
+	}
+	dbQueries := database.New(db)
 
 	appCfg := &apiConfig{
 		fileServerHits: atomic.Int32{},
+		db:             dbQueries,
 	}
 
 	mux := http.NewServeMux()
@@ -34,8 +58,10 @@ func main() {
 	}
 
 	log.Printf("Serving files from %s on port: %s\n", filePathRoot, port)
-	err := srv.ListenAndServe()
-	if err != nil {
+
+	if err := srv.ListenAndServe(); err != nil {
 		log.Println(err)
 	}
+
+	log.Println("Bye!")
 }
