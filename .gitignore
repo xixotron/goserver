@@ -1,1 +1,4 @@
+# dot share "secrests"
+.env
+# ignore built binary
 out
