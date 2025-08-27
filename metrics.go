@@ -28,9 +28,23 @@ func (cfg *apiConfig) handlerMetrics() http.Handler {
 }
 
 func (cfg *apiConfig) handlerMetricsReset(w http.ResponseWriter, r *http.Request) {
+	if cfg.platform != "dev" {
+		respondWithError(w,
+			http.StatusForbidden,
+			"You shall not pass!",
+			fmt.Errorf("attemp to call %q method outside of dev environment", r.Pattern))
+		return
+	}
+
 	cfg.fileServerHits.Store(0)
 
+	err := cfg.db.DeleteAllUsers(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't reset user database", err)
+		return
+	}
+
 	w.Header().Add("Content-type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Hits: %v", cfg.fileServerHits.Load())
+	w.WriteHeader(http.StatusResetContent)
+	fmt.Fprint(w, "Users and Hits reset")
 }
