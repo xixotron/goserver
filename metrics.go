@@ -45,6 +45,6 @@ func (cfg *apiConfig) handlerMetricsReset(w http.ResponseWriter, r *http.Request
 	}
 
 	w.Header().Add("Content-type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusResetContent)
+	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, "Users and Hits reset")
 }
