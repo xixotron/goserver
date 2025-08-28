@@ -21,6 +21,7 @@ type Chirp struct {
 
 func (cfg *apiConfig) handleGetChirps(w http.ResponseWriter, r *http.Request) {
 	response := []Chirp{}
+
 	chirps, err := cfg.db.GetAllChirps(r.Context())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "unnable to get chirps", err)
@@ -38,15 +39,37 @@ func (cfg *apiConfig) handleGetChirps(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, response)
 }
 
-func (cfg *apiConfig) handlePostChirps(w http.ResponseWriter, r *http.Request) {
-
-	type parameters struct {
-		Body   *string   `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+func (cfg *apiConfig) handleGetChirp(w http.ResponseWriter, r *http.Request) {
+	chirpIDstring := r.PathValue("chirpID")
+	chirpID, err := validateUUID(&chirpIDstring)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid chirp ID", err)
+		return
 	}
 
-	type returnVals struct {
-		Chirp
+	chirp, err := cfg.db.GetChirpByID(r.Context(), chirpID)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			respondWithError(w, http.StatusNotFound, "couldn't get chirp", err)
+			return
+		}
+		respondWithError(w, http.StatusInternalServerError, "something went wrogn", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, Chirp{
+		ID:        chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body:      chirp.Body,
+		UserID:    chirp.UserID,
+	})
+}
+
+func (cfg *apiConfig) handlePostChirps(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Body   *string `json:"body"`
+		UserID *string `json:"user_id"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -63,7 +86,7 @@ func (cfg *apiConfig) handlePostChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := validateUserID(params.UserID)
+	userID, err := validateUUID(params.UserID)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err.Error(), err)
 		return
@@ -80,14 +103,12 @@ func (cfg *apiConfig) handlePostChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, returnVals{
-		Chirp: Chirp{
-			ID:        chirp.ID,
-			CreatedAt: chirp.CreatedAt,
-			UpdatedAt: chirp.UpdatedAt,
-			Body:      chirp.Body,
-			UserID:    chirp.UserID,
-		},
+	respondWithJSON(w, http.StatusCreated, Chirp{
+		ID:        chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body:      chirp.Body,
+		UserID:    chirp.UserID,
 	})
 }
 
@@ -109,11 +130,15 @@ func validateChirp(chirp *string) (string, error) {
 	return replaceNotyWords(*chirp), nil
 }
 
-func validateUserID(userID uuid.UUID) (uuid.UUID, error) {
-	if userID.String() == "" {
+func validateUUID(id *string) (uuid.UUID, error) {
+	if id == nil {
+		return uuid.Nil, errors.New("no uuid provided")
+	}
+	resultID, err := uuid.Parse(*id)
+	if err != nil {
 		return uuid.Nil, errors.New("invalid user_id provided")
 	}
-	return userID, nil
+	return resultID, nil
 }
 
 func replaceNotyWords(chirp string) string {
