@@ -38,7 +38,7 @@ func (cfg *apiConfig) handlerMetricsReset(w http.ResponseWriter, r *http.Request
 
 	cfg.fileServerHits.Store(0)
 
-	err := cfg.db.DeleteAllUsers(r.Context())
+	err := cfg.db.ResetDatabase(r.Context())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't reset user database", err)
 		return

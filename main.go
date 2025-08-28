@@ -49,8 +49,8 @@ func main() {
 	mux.Handle("/app/", http.StripPrefix("/app/", fsHandler))
 
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
-	mux.HandleFunc("POST /api/validate_chirp", handleChirpsValidate)
 	mux.HandleFunc("POST /api/users", appCfg.handleCreateUser)
+	mux.HandleFunc("POST /api/chirps", appCfg.handlePostChirps)
 
 	mux.Handle("GET /admin/metrics", appCfg.handlerMetrics())
 	mux.HandleFunc("POST /admin/reset", appCfg.handlerMetricsReset)

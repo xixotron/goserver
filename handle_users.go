@@ -33,10 +33,8 @@ func (cfg *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
-		Email:     *params.Email,
+		ID:    uuid.New(),
+		Email: *params.Email,
 	})
 
 	if err != nil {
