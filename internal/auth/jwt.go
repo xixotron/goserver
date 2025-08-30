@@ -2,15 +2,22 @@ package auth
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
+type TokenType string
+
+const (
+	TokenTypeAccess TokenType = "chirpy-access"
+)
+
 func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
 	claims := jwt.RegisteredClaims{
-		Issuer:    "chirpy",
+		Issuer:    string(TokenTypeAccess),
 		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
 		ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(expiresIn)),
 		Subject:   userID.String(),
@@ -26,11 +33,14 @@ func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (str
 }
 
 func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
-
 	claims := jwt.RegisteredClaims{}
-	token, err := jwt.ParseWithClaims(tokenString, &claims, func(t *jwt.Token) (any, error) {
-		return []byte(tokenSecret), nil
-	})
+
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&claims,
+		func(t *jwt.Token) (any, error) {
+			return []byte(tokenSecret), nil
+		})
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -38,15 +48,24 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 		return uuid.Nil, errors.New("Invalid token")
 	}
 
-	uuidString, err := token.Claims.GetSubject()
+	userIDString, err := token.Claims.GetSubject()
 	if err != nil {
-		return uuid.Nil, errors.New("Coudn't recover token's uuid")
+		return uuid.Nil, err
 	}
 
-	id, err := uuid.Parse(uuidString)
+	issuer, err := token.Claims.GetIssuer()
 	if err != nil {
-		return uuid.Nil, errors.New("Coudn't parse token's uuid")
+		return uuid.Nil, err
 	}
 
-	return id, nil
+	if issuer != string(TokenTypeAccess) {
+		return uuid.Nil, errors.New("Invalid isuer")
+	}
+
+	userID, err := uuid.Parse(userIDString)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	return userID, nil
 }
