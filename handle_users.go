@@ -6,20 +6,26 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/xixotron/goserver/internal/auth"
 	"github.com/xixotron/goserver/internal/database"
 )
 
+type User struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
+}
+
 func (cfg *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Email *string `json:"email"`
+		Password *string `json:"password"`
+		Email    *string `json:"email"`
+	}
+	type response struct {
+		User
 	}
 
-	type returnVals struct {
-		ID        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Email     string    `json:"email"`
-	}
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
 	err := decoder.Decode(&params)
@@ -32,9 +38,19 @@ func (cfg *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, "email parameter was not provided or empty", nil)
 		return
 	}
+	if params.Password == nil || *params.Password == "" {
+		respondWithError(w, http.StatusBadRequest, "password parameter was not provided or empty", nil)
+		return
+	}
+	passworHash, err := auth.HashPassword(*params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "password parameter invalid", nil)
+		return
+	}
+
 	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{
-		ID:    uuid.New(),
-		Email: *params.Email,
+		Email:          *params.Email,
+		HashedPassword: passworHash,
 	})
 
 	if err != nil {
@@ -42,10 +58,61 @@ func (cfg *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, returnVals{
-		ID:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
+	respondWithJSON(w, http.StatusCreated, response{
+		User{
+			ID:        user.ID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			Email:     user.Email,
+		},
+	})
+}
+
+func (cfg *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Password *string `json:"password"`
+		Email    *string `json:"email"`
+	}
+
+	type response struct {
+		User
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	err := decoder.Decode(&params)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Couldn't decode parameters", err)
+		return
+	}
+
+	if params.Email == nil || *params.Email == "" {
+		respondWithError(w, http.StatusBadRequest, "email parameter was not provided or empty", nil)
+		return
+	}
+	if params.Password == nil || *params.Password == "" {
+		respondWithError(w, http.StatusBadRequest, "password parameter was not provided or empty", nil)
+		return
+	}
+
+	user, err := cfg.db.GetUserByEmail(r.Context(), *params.Email)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", err)
+		return
+	}
+
+	err = auth.CheckPasswordHash(*params.Password, user.HashedPassword)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, response{
+		User{
+			ID:        user.ID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			Email:     user.Email,
+		},
 	})
 }
