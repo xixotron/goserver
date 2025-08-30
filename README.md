@@ -24,7 +24,7 @@ allways returns 200/OK when the server is runing
 
 allows the creation of users, requieres 2 fields email and password:
 
-```json
+```
 {
     "email": "<string>",    // unique user email
     "password": "<string>"  // user's password
@@ -34,7 +34,7 @@ allows the creation of users, requieres 2 fields email and password:
 on successfull register returns a User object wich contains all not private
 user information:
 
-```json
+```
 {
     "id": "<UUID_string>",      // unique identifier string formatted UUID
     "created_at": "<UTC_date>", // original creation of the user account
@@ -48,7 +48,7 @@ user information:
 allows registered users to get back a bearer token for use in other api calls,
 requieres:
 
-```json
+```
 {
     "email": "<string>",        // unique user email
     "password": "<string>",     // user's password
@@ -59,7 +59,7 @@ requieres:
 
 on succesful validation of the user credentials returns:
 
-```json
+```
 {
     "id": "<UUID_string>",      // unique identifier string formatted UUID
     "created_at": "<UTC_date>", // original creation of the user account
@@ -76,7 +76,7 @@ allows registered users to publish a chirp to the server, requieres atentication
 `Authorization` header must be set with `Bearer <bearer_token>` to be able
 to publish a chirp
 
-```json
+```
 {
     "body":"<text>" // text of the chirp to be published, up to 140 characters
                     // some words may be censored on the published chirp
@@ -85,7 +85,7 @@ to publish a chirp
 
 on succes returns code 201 and the body:
 
-```json
+```
 {
     "id": "<UUID_string>",      // unique identifier of the chirp string-formatted UUID
     "created_at": "<UTC_date>", // original creation of the chirp
@@ -100,7 +100,7 @@ on succes returns code 201 and the body:
 allows acces to all published chirps, requieres no parameters, returns a list
 of all published chirps so far:
 
-```json
+```
 [
     {
         "id": "<UUID_string>",      // unique identifier of the chirp string-formatted UUID
@@ -118,7 +118,7 @@ of all published chirps so far:
 allows acces to a specific chirp, requieres the chir's unique id as the path
 `/{chirpID}` parameter, if found returns the chirp fields:
 
-```json
+```
 {
     "id": "<UUID_string>",      // unique identifier of the chirp string-formatted UUID
     "created_at": "<UTC_date>", // original creation of the chirp
