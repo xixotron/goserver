@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/xixotron/goserver/internal/auth"
 	"github.com/xixotron/goserver/internal/database"
 )
 
@@ -68,13 +69,29 @@ func (cfg *apiConfig) handleGetChirp(w http.ResponseWriter, r *http.Request) {
 
 func (cfg *apiConfig) handlePostChirps(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Body   *string `json:"body"`
-		UserID *string `json:"user_id"`
+		Body *string `json:"body"`
+	}
+
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Bearer token not provided or invalid", err)
+		return
+	}
+
+	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Bearer token not provided or invalid", err)
+		return
+	}
+	user, err := cfg.db.GetUserByID(r.Context(), userID)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Bearer token not provided or invalid", err)
+		return
 	}
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusTeapot, "Couldn't parse provided data", err)
 		return
@@ -86,16 +103,10 @@ func (cfg *apiConfig) handlePostChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := validateUUID(params.UserID)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error(), err)
-		return
-	}
-
 	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
 		ID:     uuid.New(),
 		Body:   chirpBody,
-		UserID: userID,
+		UserID: user.ID,
 	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError,
