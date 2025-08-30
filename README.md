@@ -78,7 +78,7 @@ to publish a chirp
 
 ```json
 {
-    "body":"<text"> // text of the chirp to be published, up to 140 characters
+    "body":"<text>" // text of the chirp to be published, up to 140 characters
                     // some words may be censored on the published chirp
 }
 ```
