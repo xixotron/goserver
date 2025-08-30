@@ -52,7 +52,7 @@ requieres:
 {
     "email": "<string>",        // unique user email
     "password": "<string>",     // user's password
-    "expires_in_seconds":<num>  // optional defaults to 3600 if absent,
+    "expires_in_seconds": <num> // optional defaults to 3600 if absent,
                                 // 0 <= num <= 3600 s expiration time of the token
 }
 ```
@@ -65,7 +65,7 @@ on succesful validation of the user credentials returns:
     "created_at": "<UTC_date>", // original creation of the user account
     "updated_at": "<UTC_date>", // last time the user profile was modified
     "email": "<string>",        // user's unique email
-    "token": "<string>          // Bearer token
+    "token": "<string>"         // Bearer token
 }
 ```
 
