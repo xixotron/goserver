@@ -52,7 +52,7 @@ requieres:
 {
     "email": "<string>",        // unique user email
     "password": "<string>",     // user's password
-    "expires_in_seconds": <num> // optional defaults to 3600 if absent,
+    "expires_in_seconds": int   // optional defaults to 3600 if absent,
                                 // 0 <= num <= 3600 s expiration time of the token
 }
 ```
