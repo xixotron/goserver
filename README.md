@@ -12,9 +12,129 @@ now we serve the files in the folder we run the server from /app path
 
 We now have an API /api with the method:
 
-/api/healthz  allways returns 200/OK when the server is runing
+/api/healthz  
 
-Now we have metrics under /admin directory:
+available endpoints
 
-- /admin/metrics  tells us how many times the /app has ben called (Hits)
-- /admin/reset    resets the number of Hits on the /app counter
+### GET /api/healthz
+
+allways returns 200/OK when the server is runing
+
+### POST /api/users
+
+allows the creation of users, requieres 2 fields email and password:
+
+```json
+{
+    "email": "<string>",    // unique user email
+    "password": "<string>"  // user's password
+}
+```
+
+on successfull register returns a User object wich contains all not private
+user information:
+
+```json
+{
+    "id": "<UUID_string>",      // unique identifier string formatted UUID
+    "created_at": "<UTC_date>", // original creation of the user account
+    "updated_at": "<UTC_date>", // last time the user profile was modified
+    "email": "<string>"         // user's unique email
+}
+```
+
+### POST /api/login
+
+allows registered users to get back a bearer token for use in other api calls,
+requieres:
+
+```json
+{
+    "email": "<string>",        // unique user email
+    "password": "<string>",     // user's password
+    "expires_in_seconds":<num>  // optional defaults to 3600 if absent,
+                                // 0 <= num <= 3600 s expiration time of the token
+}
+```
+
+on succesful validation of the user credentials returns:
+
+```json
+{
+    "id": "<UUID_string>",      // unique identifier string formatted UUID
+    "created_at": "<UTC_date>", // original creation of the user account
+    "updated_at": "<UTC_date>", // last time the user profile was modified
+    "email": "<string>",        // user's unique email
+    "token": "<string>          // Bearer token
+}
+```
+
+### POST /api/chirps
+
+allows registered users to publish a chirp to the server, requieres atentication:
+
+`Authorization` header must be set with `Bearer <bearer_token>` to be able
+to publish a chirp
+
+```json
+{
+    "body":"<text"> // text of the chirp to be published, up to 140 characters
+                    // some words may be censored on the published chirp
+}
+```
+
+on succes returns code 201 and the body:
+
+```json
+{
+    "id": "<UUID_string>",      // unique identifier of the chirp string-formatted UUID
+    "created_at": "<UTC_date>", // original creation of the chirp
+    "updated_at": "<UTC_date>", // last time the chirp was modified
+    "body": "<string>",        // published text of the chirp
+    "user_id": "<string>"       // unique identifier of the user who created the chirp string-formatted UUID
+}
+```
+
+### GET /api/chirps
+
+allows acces to all published chirps, requieres no parameters, returns a list
+of all published chirps so far:
+
+```json
+[
+    {
+        "id": "<UUID_string>",      // unique identifier of the chirp string-formatted UUID
+        "created_at": "<UTC_date>", // original creation of the chirp
+        "updated_at": "<UTC_date>", // last time the chirp was modified
+        "body": "<string>",        // published text of the chirp
+        "user_id": "<string>"       // unique identifier of the user who created the chirp string-formatted UUID
+    },
+    ...
+]
+```
+
+### GET /api/chirps/{chirpID}
+
+allows acces to a specific chirp, requieres the chir's unique id as the path
+`/{chirpID}` parameter, if found returns the chirp fields:
+
+```json
+{
+    "id": "<UUID_string>",      // unique identifier of the chirp string-formatted UUID
+    "created_at": "<UTC_date>", // original creation of the chirp
+    "updated_at": "<UTC_date>", // last time the chirp was modified
+    "body": "<string>",        // published text of the chirp
+    "user_id": "<string>"       // unique identifier of the user who created the chirp string-formatted UUID
+}
+```
+
+### GET /admin/metrics
+
+allows acces to counters for the number of times that selected endpoints
+have been requested.
+
+
+### POST /admin/reset
+
+allows the reset of the countes in metrics, and on _dev_ mode purgues the
+entire user database.
