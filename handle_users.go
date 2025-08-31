@@ -62,20 +62,21 @@ func (cfg *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+const tokenExpiration = 1 * time.Hour
+
 func (cfg *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Password         *string `json:"password"`
-		Email            *string `json:"email"`
-		ExpiresInSeconds *int64  `json:"expires_in_seconds"`
+		Password *string `json:"password"`
+		Email    *string `json:"email"`
 	}
-	tokenExpiresIn := 1 * time.Hour
 
 	type response struct {
-		ID        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Email     string    `json:"email"`
-		Token     string    `json:"token"`
+		ID           uuid.UUID `json:"id"`
+		CreatedAt    time.Time `json:"created_at"`
+		UpdatedAt    time.Time `json:"updated_at"`
+		Email        string    `json:"email"`
+		Token        string    `json:"token"`
+		RefreshToken string    `json:"refresh_token"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -94,9 +95,6 @@ func (cfg *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, "password parameter was not provided or empty", nil)
 		return
 	}
-	if params.ExpiresInSeconds != nil && *params.ExpiresInSeconds > 0 && *params.ExpiresInSeconds < 3600 {
-		tokenExpiresIn = time.Duration(*params.ExpiresInSeconds) * time.Second
-	}
 
 	user, err := cfg.db.GetUserByEmail(r.Context(), *params.Email)
 	if err != nil {
@@ -109,13 +107,34 @@ func (cfg *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password", err)
 		return
 	}
-	token, err := auth.MakeJWT(user.ID, cfg.jwtSecret, tokenExpiresIn)
+
+	bearerToken, err := auth.MakeJWT(user.ID, cfg.jwtSecret, tokenExpiration)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Coudn't create bearer token", err)
+		return
+	}
+
+	refreshTokenString, err := auth.MakeRefreshToken()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Coudn't create refresh token", err)
+		return
+	}
+
+	refreshToken, err := cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+		Token:  refreshTokenString,
+		UserID: user.ID,
+	})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Coudn't create refresh token", err)
+		return
+	}
 
 	respondWithJSON(w, http.StatusOK, response{
-		ID:        user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
-		Token:     token,
+		ID:           user.ID,
+		CreatedAt:    user.CreatedAt,
+		UpdatedAt:    user.UpdatedAt,
+		Email:        user.Email,
+		Token:        bearerToken,
+		RefreshToken: refreshToken.Token,
 	})
 }
