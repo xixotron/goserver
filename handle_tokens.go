@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/xixotron/goserver/internal/auth"
 )
@@ -11,13 +12,13 @@ import (
 func (cfg *apiConfig) handleRevokeRefreshToken(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Refresh token not provided or invalid", fmt.Errorf("%v 1, %w", r.Pattern, err))
+		respondWithError(w, http.StatusBadRequest, "Coudlnt' find token", err)
 		return
 	}
 
-	err = cfg.db.RevokeRefreshToken(r.Context(), refreshToken)
+	_, err = cfg.db.RevokeRefreshToken(r.Context(), refreshToken)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "couldn't revoke the provided refresh token", fmt.Errorf("%v 2, %w", r.Pattern, err))
+		respondWithError(w, http.StatusInternalServerError, "Couldn't revoke sesion", err)
 		return
 	}
 
@@ -31,23 +32,23 @@ func (cfg *apiConfig) handleRefreshToken(w http.ResponseWriter, r *http.Request)
 
 	refreshToken, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Refresh token not provided or invalid", fmt.Errorf("%v 1, %w", r.Pattern, err))
+		respondWithError(w, http.StatusBadRequest, "Couldn't find token", err)
 		return
 	}
 
-	userID, err := cfg.db.GetUserFromRefreshToken(r.Context(), refreshToken)
+	user, err := cfg.db.GetUserFromRefreshToken(r.Context(), refreshToken)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "invalid or expired refresh token", fmt.Errorf("%v 2, %w", r.Pattern, err))
+		respondWithError(w, http.StatusUnauthorized, "Couldn't get user from refresh token", err)
 		return
 	}
 
-	bearerToken, err := auth.MakeJWT(userID, cfg.jwtSecret, tokenExpiration)
+	accessToken, err := auth.MakeJWT(user.ID, cfg.jwtSecret, time.Hour)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Coudn't create bearer token", fmt.Errorf("%v 3, %w", r.Pattern, err))
 		return
 	}
 	log.Printf("%v 4: send bearer token\n", r.Pattern)
 	respondWithJSON(w, http.StatusOK, token{
-		Token: bearerToken,
+		Token: accessToken,
 	})
 }

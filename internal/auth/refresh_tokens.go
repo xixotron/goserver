@@ -5,11 +5,8 @@ import (
 	"encoding/hex"
 )
 
-func MakeRefreshToken() (string, error) {
+func MakeRefreshToken() string {
 	token := make([]byte, 32)
-
 	rand.Read(token)
-
-	hexToken := hex.EncodeToString(token)
-	return hexToken, nil
+	return hex.EncodeToString(token)
 }
