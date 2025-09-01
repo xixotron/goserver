@@ -63,8 +63,6 @@ func (cfg *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-const tokenExpiration = 1 * time.Hour
-
 func (cfg *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Password *string `json:"password"`
@@ -106,7 +104,7 @@ func (cfg *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	bearerToken, err := auth.MakeJWT(user.ID, cfg.jwtSecret, tokenExpiration)
+	bearerToken, err := auth.MakeJWT(user.ID, cfg.jwtSecret, time.Hour)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Coudn't create bearer token", err)
 		return
