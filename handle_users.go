@@ -10,16 +10,17 @@ import (
 	"github.com/xixotron/goserver/internal/database"
 )
 
+type User struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
+}
+
 func (cfg *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Password *string `json:"password"`
 		Email    *string `json:"email"`
-	}
-	type response struct {
-		ID        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Email     string    `json:"email"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -54,7 +55,7 @@ func (cfg *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, response{
+	respondWithJSON(w, http.StatusCreated, User{
 		ID:        user.ID,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
@@ -71,12 +72,9 @@ func (cfg *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type response struct {
-		ID           uuid.UUID `json:"id"`
-		CreatedAt    time.Time `json:"created_at"`
-		UpdatedAt    time.Time `json:"updated_at"`
-		Email        string    `json:"email"`
-		Token        string    `json:"token"`
-		RefreshToken string    `json:"refresh_token"`
+		User
+		Token        string `json:"token"`
+		RefreshToken string `json:"refresh_token"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -127,10 +125,12 @@ func (cfg *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, http.StatusOK, response{
-		ID:           user.ID,
-		CreatedAt:    user.CreatedAt,
-		UpdatedAt:    user.UpdatedAt,
-		Email:        user.Email,
+		User: User{
+			ID:        user.ID,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+			Email:     user.Email,
+		},
 		Token:        bearerToken,
 		RefreshToken: refreshToken,
 	})
