@@ -3,15 +3,20 @@ package main
 import (
 	"errors"
 	"net/http"
+	"sort"
 
 	"github.com/google/uuid"
-	"github.com/xixotron/goserver/internal/database"
 )
 
 func (cfg *apiConfig) handleGetChirps(w http.ResponseWriter, r *http.Request) {
 	response := []Chirp{}
 
-	var err error
+	chirps, err := cfg.db.GetAllChirps(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "unnable to get chirps", err)
+		return
+	}
+
 	authorID := uuid.Nil
 	authorIDstring := r.URL.Query().Get("author_id")
 	if authorIDstring != "" {
@@ -22,19 +27,21 @@ func (cfg *apiConfig) handleGetChirps(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	var chirps []database.Chirp
-	if authorID != uuid.Nil {
-		chirps, err = cfg.db.GetChirpsByUserID(r.Context(), authorID)
-	} else {
-		chirps, err = cfg.db.GetAllChirps(r.Context())
-	}
-
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "unnable to get chirps", err)
+	order := r.URL.Query().Get("sort")
+	if order != "" && order != "asc" && order != "desc" {
+		respondWithError(w, http.StatusBadRequest, "sort should be 'asc' or 'desc' if present", err)
 		return
+	}
+	if order == "desc" {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
+		})
 	}
 
 	for _, chirp := range chirps {
+		if authorID != uuid.Nil && authorID != chirp.UserID {
+			continue
+		}
 		response = append(response, Chirp{
 			ID:        chirp.ID,
 			CreatedAt: chirp.CreatedAt,
