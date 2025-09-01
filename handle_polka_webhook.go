@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/xixotron/goserver/internal/auth"
 )
 
 func (cfg *apiConfig) handlePolkaWebhook(w http.ResponseWriter, r *http.Request) {
@@ -16,10 +17,19 @@ func (cfg *apiConfig) handlePolkaWebhook(w http.ResponseWriter, r *http.Request)
 			UserID uuid.UUID `json:"user_id"`
 		} `json:"data"`
 	}
+	apiKey, err := auth.GetApiKey(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invaliz Authorization", err)
+		return
+	}
+	if apiKey != cfg.polkaKey {
+		respondWithError(w, http.StatusUnauthorized, "Invaliz Authorization", err)
+		return
+	}
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Couldn't decode parameters", err)
 		return
