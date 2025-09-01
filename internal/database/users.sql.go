@@ -79,20 +79,20 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 const updateUserCredentials = `-- name: UpdateUserCredentials :one
 UPDATE users SET
   updated_at = NOW(),
-  email = $1,
-  hashed_password = $2
-WHERE id = $3
+  email = $2,
+  hashed_password = $3
+WHERE id = $1
 RETURNING id, created_at, updated_at, email, hashed_password
 `
 
 type UpdateUserCredentialsParams struct {
+	ID             uuid.UUID
 	Email          string
 	HashedPassword string
-	ID             uuid.UUID
 }
 
 func (q *Queries) UpdateUserCredentials(ctx context.Context, arg UpdateUserCredentialsParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, updateUserCredentials, arg.Email, arg.HashedPassword, arg.ID)
+	row := q.db.QueryRowContext(ctx, updateUserCredentials, arg.ID, arg.Email, arg.HashedPassword)
 	var i User
 	err := row.Scan(
 		&i.ID,
