@@ -8,6 +8,7 @@ UPDATE refresh_tokens SET
   updated_at = NOW(),
   revoked_at = NOW()
 WHERE token = $1
+AND revoked_at IS NULL
 RETURNING *;
 
 -- name: GetUserFromRefreshToken :one
