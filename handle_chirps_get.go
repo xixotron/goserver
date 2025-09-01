@@ -5,16 +5,35 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/xixotron/goserver/internal/database"
 )
 
 func (cfg *apiConfig) handleGetChirps(w http.ResponseWriter, r *http.Request) {
 	response := []Chirp{}
 
-	chirps, err := cfg.db.GetAllChirps(r.Context())
+	var err error
+	authorID := uuid.Nil
+	authorIDstring := r.URL.Query().Get("author_id")
+	if authorIDstring != "" {
+		authorID, err = validateUUID(&authorIDstring)
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Malformed author id", err)
+			return
+		}
+	}
+
+	var chirps []database.Chirp
+	if authorID != uuid.Nil {
+		chirps, err = cfg.db.GetChirpsByUserID(r.Context(), authorID)
+	} else {
+		chirps, err = cfg.db.GetAllChirps(r.Context())
+	}
+
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "unnable to get chirps", err)
 		return
 	}
+
 	for _, chirp := range chirps {
 		response = append(response, Chirp{
 			ID:        chirp.ID,
