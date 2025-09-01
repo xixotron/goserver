@@ -67,7 +67,7 @@ func (cfg *apiConfig) handleGetChirp(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (cfg *apiConfig) handlePostChirps(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlePostChirp(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body *string `json:"body"`
 	}
